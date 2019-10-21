@@ -1,0 +1,25 @@
+---
+title: "Homework 5"
+author: "Corey Maxedon and Joe Stoica"
+date: "10/21/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+The commit history has three commits. One with the initial commit of the blank files. One with updated llr_functions.R and test_llr.R files. One with an updated benchmark_llr.R file. We have one branch called master that is pointing to the last commit. The HEAD is pointing to master.
+
+
+## Question 2
+
+## Question 3
+
+## Question 4
+
+## Question 5
+
+## Question 5
+
