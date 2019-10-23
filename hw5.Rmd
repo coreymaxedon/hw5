@@ -10,10 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Question 1
+
 The commit history has three commits. One with the initial commit of the blank files. One with updated llr_functions.R and test_llr.R files. One with an updated benchmark_llr.R file. We have one branch called master that is pointing to the last commit. The HEAD is pointing to master.
 
-
 ## Question 2
+
+After creating a new branch, HEAD is pointing to speed-test-1. After making changes, the master will point to the older commit, while speed-test-1 will point to the new commit that contains our new changes. 
 
 ## Question 3
 
