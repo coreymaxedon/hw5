@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Link to GitHub Repo: https://github.com/coreymaxedon/hw5
+
 ## Question 1
 
 The commit history has three commits. One with the initial commit of the blank files. One with updated llr_functions.R and test_llr.R files. One with an updated benchmark_llr.R file. We have one branch called master that is pointing to the last commit. The HEAD is pointing to master.
@@ -23,11 +25,16 @@ We used apply and separated by column. Since only the diagonal of Wz has numbers
 
 ## Question 3
 
-The new version is much fast. The speed-test-1 version cut the mean time in half.
+The new version is much faster. The speed-test-1 version cut the median time in half.
 
 ## Question 4
 
-## Question 5
+We used sweep and the * operator. Sweep works like apply. * multiples element by element of each vector. This works the same since Wz was originally just a diagonal matrix. The other numbers would be zero except the piece of X or y multiplied by the diagonal element.
 
 ## Question 5
 
+The fastest version was speed-test-2. The speed up over speed-test-1 was pretty marginal. Essentially, the same operation is happening in a slightly different way. We also did speed-test-extra. We realized the * operator would recycle Wz in Wz * X. Surprisely, speed-test-2 was still the fastest.
+
+## Question 6
+
+We get a timeline of commit on each branch. This gave the history of every commit on every branch including the time the commit was done and who committed the update. The comment was also included.
