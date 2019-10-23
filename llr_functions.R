@@ -21,6 +21,13 @@ llr = function(x, y, z, omega) {
 #' @param omega (numeric) must be a scalar
 #' @return (numeric) scalar
 compute_f_hat = function(z, x, y, omega) {
+  Wz = diag(make_weight_matrix(z, x, omega))
+  X = make_predictor_matrix(x)
+  #f_hat = c(1, z) %*% solve(t(X) %*% Wz %*% X) %*% t(X) %*% Wz %*% y
+  f_hat = c(1, z) %*% solve(t(X) %*% apply(Wz, 1, function(butt){butt * X})) %*% t(X) %*% apply(Wz, 1, function(butt){butt * y})
+  return(f_hat)
+}
+compute_f_hat = function(z, x, y, omega) {
   Wz = make_weight_matrix(z, x, omega)
   X = make_predictor_matrix(x)
   f_hat = c(1, z) %*% solve(t(X) %*% Wz %*% X) %*% t(X) %*% Wz %*% y
@@ -71,23 +78,6 @@ z = seq(0, 15, length.out = 100)
 
 # run smoothing
 fits = llr(z = z, x = x, y = y, omega = 2)
-
-# plot the data and the smoother
-plot(x, y)
-lines(z, fits, col = 'red')
-
-
-# --- example 2 --- #
-
-# noisy sine wave
-x = runif(1000, -2 * pi, 2 * pi)
-y = sin(x) + rnorm(length(x))
-
-# space along which to smooth
-z = seq(-2 * pi, 2 * pi, length.out = 100)
-
-# run smoothing
-fits = llr(z = z, x = x, y = y, omega = pi / 3)
 
 # plot the data and the smoother
 plot(x, y)
