@@ -35,6 +35,14 @@ We used sweep and the * operator. Sweep works like apply. * multiples element by
 
 The fastest version was speed-test-2. The speed up over speed-test-1 was pretty marginal. Essentially, the same operation is happening in a slightly different way. We also did speed-test-extra. We realized the * operator would recycle Wz in Wz * X. Surprisely, speed-test-2 was still the fastest.
 
+Results:
+Master:
+    mean  median     
+596.8217 501.992 
+ 
+ 
+
+
 ## Question 6
 
 We get a timeline of commit on each branch. This gave the history of every commit on every branch including the time the commit was done and who committed the update. The comment was also included.
