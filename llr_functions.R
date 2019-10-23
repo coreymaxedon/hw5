@@ -23,8 +23,7 @@ llr = function(x, y, z, omega) {
 compute_f_hat = function(z, x, y, omega) {
   Wz = diag(make_weight_matrix(z, x, omega))
   X = make_predictor_matrix(x)
-  browser()
-  f_hat = c(1, z) %*% solve(t(X) %*% apply(Wz, 1, function(butt){butt * X})) %*% t(X) %*% apply(Wz, 1, function(butt){butt * y})
+  f_hat = c(1, z) %*% solve(t(X) %*% apply(X, 2, function(butt){butt * Wz})) %*% t(X) %*% apply(as.matrix(y), 2, function(butt){butt * Wz})
   return(f_hat)
 }
 
