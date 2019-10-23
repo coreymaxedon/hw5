@@ -19,7 +19,7 @@ After creating a new branch, HEAD is pointing to speed-test-1. After making chan
 
 ## Question 2 (the second time)
 
-We used apply. Since only the diagonal of Wz has numbers, this is equalivalent to each element of a Wz vector (diagonal values of original Wz) being multiplied by each row of X and y. 
+We used apply and separated by column. Since only the diagonal of Wz has numbers, this is equalivalent to each element of a Wz vector (diagonal values of original Wz) being multiplied by each row of X and y. 
 
 ## Question 3
 
