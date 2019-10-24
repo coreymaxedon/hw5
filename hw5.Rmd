@@ -1,6 +1,6 @@
 ---
 title: "Homework 5"
-author: "Corey Maxedon and Joe Stoica"
+author: "Austin Lesh, Corey Maxedon, and Joe Stoica"
 date: "10/21/2019"
 output: pdf_document
 ---
