@@ -1,6 +1,6 @@
 ---
 title: "Homework 5"
-author: "Corey Maxedon and Joe Stoica"
+author: "Corey Maxedon, Joe Stoica, Austin Lesh"
 date: "10/21/2019"
 output: pdf_document
 ---
@@ -41,13 +41,14 @@ Unit: milliseconds
                      expr      min       lq     mean  median       uq      max neval
 source("llr_functions.R") 452.1253 467.8461 596.8217 501.992 619.4566 1977.729   100
 
-speed-test-1:
+**speed-test-1:**
                      expr      min       lq     mean   median       uq     max neval
 source("llr_functions.R") 221.8562 241.0305 291.3232 252.2806 336.5498 893.165   100
 
  
- 
-
+**speed-test-2**
+                      expr      min       lq     mean   median       uq      max neval)
+ source("llr_functions.R") 209.3638 221.2804 273.8552 229.4321 320.9144 787.7929   100
 
 ## Question 6
 
