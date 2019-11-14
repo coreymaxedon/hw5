@@ -1,0 +1,44 @@
+---
+title: "610 HW7"
+author: "Joe Stoica"
+date: "11/10/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+df <- read.csv("hw7.csv")
+df <- df[, -1]
+library(CVXR)
+```
+
+# 2 
+
+
+```{r}
+p = ncol(df)
+theta = Variable(rows = p, cols = p)
+S <- cov(df)
+
+get_inv_cov <- function(lambda) {
+    objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta) + lambda * sum(abs(theta)))
+    problem = Problem(objective)
+    result = psolve(problem)
+    return(result$getValue(theta))
+}
+
+round(get_inv_cov(1), 10)
+```
+
+```{r}
+lambda_search = 10^(seq(-2, 2, length.out = 40))
+inv_cov_matrices = lapply(lambda_search, get_inv_cov)
+```
+
+# 3
+
+```{r}
+
+```
+
