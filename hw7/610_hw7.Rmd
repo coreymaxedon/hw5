@@ -1,6 +1,6 @@
 ---
 title: "610 HW7"
-author: "Joe Stoica"
+author: "Joe Stoica and Corey Maxedon"
 date: "11/10/2019"
 output: pdf_document
 ---
@@ -8,20 +8,26 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-df <- read.csv("hw7.csv")
-df <- df[, -1]
 library(CVXR)
 ```
 
+# 1
+```{r, include=FALSE, echo=FALSE}
+df <- read.csv("https://jfukuyama.github.io/teaching/stat610/assignments/hw7.csv")
+df <- df[, -1]
+
+```
+
+No ouput required.
+
+
 # 2 
 
-
 ```{r}
-p = ncol(df)
-theta = Variable(rows = p, cols = p)
-S <- cov(df)
-
-get_inv_cov <- function(lambda) {
+get_inv_cov <- function(lambda, data=df) {
+    p = ncol(data)
+    theta = Variable(rows = p, cols = p)
+    S <- cov(data)
     objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta) + lambda * sum(abs(theta)))
     problem = Problem(objective)
     result = psolve(problem)
@@ -31,14 +37,77 @@ get_inv_cov <- function(lambda) {
 round(get_inv_cov(1), 10)
 ```
 
-```{r}
-lambda_search = 10^(seq(-2, 2, length.out = 40))
-inv_cov_matrices = lapply(lambda_search, get_inv_cov)
-```
 
 # 3
 
 ```{r}
+lambda_search = 10^(seq(-2, 2, length.out = 20))
+inv_cov_matrices = plyr::aaply(lambda_search, 1, function(x) diag(get_inv_cov(x)))
+colnames(inv_cov_matrices) = colnames(df)
+inv_cov_matrices = cbind(lambda = lambda_search, inv_cov_matrices)
+head(round(inv_cov_matrices, digits = 2))
+
+inv_cov_melted = reshape2::melt(data.frame(inv_cov_matrices), id.vars = "lambda", value.name = "inverse_covariance")
+ggplot(inv_cov_melted) +
+    geom_line(aes(x = lambda, y = inverse_covariance, color = variable, lty = variable)) +
+    scale_x_log10()
 
 ```
+
+
+
+# 4
+
+```{r}
+index = matrix(sample(50, 50), ncol = 10)
+groups = plyr::alply(index, 2, function(x) df[x,])
+
+lambda_search_1 = 10^(seq(-2, 2, length.out = 4))
+
+bestlambda = function(lambda) {
+  theta_hats = plyr::llply(groups, function(x) get_inv_cov(lambda = lambda, data=x))
+  covs_s = plyr::llply(groups, cov)
+  neglik = NULL
+  for(i in 1:10) {
+    neglik[i] = -log(det(theta_hats[[i]])) + sum(diag(covs_s[[i]] %*% theta_hats[[i]]))
+  }
+  return(sum(neglik))
+}
+
+neglik_vector = plyr::aaply(lambda_search, 1, bestlambda)
+colnames<- c(neglik_vector, "negative_log_lik")
+neglik_vector = cbind(lambda = lambda_search, neglik_vector)
+head(round(neglik_vector, digits = 2))
+
+```
+
+
+
+# 5
+
+```{r}
+get_inv_cov_update <- function(data=df) {
+    p = ncol(data)
+    theta = Variable(rows = p, cols = p)
+    S <- cov(data)
+    i = c(2:9)
+    j = c(2:9)
+    objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta))
+    constraints = list(theta[i,j] == 0)
+    problem = Problem(objective, constraints)
+    result = psolve(problem)
+    return(result$getValue(theta))
+}
+
+round(get_inv_cov_update(), 10)
+
+```
+
+
+# 6
+
+
+
+
+
 
