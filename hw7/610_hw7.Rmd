@@ -6,108 +6,193 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 library(CVXR)
+library(tidyverse)
+library(plyr)
 ```
 
 # 1
-```{r, include=FALSE, echo=FALSE}
+```{r data in, include=FALSE, echo=FALSE}
 df <- read.csv("https://jfukuyama.github.io/teaching/stat610/assignments/hw7.csv")
 df <- df[, -1]
-
 ```
 
-No ouput required.
-
+No output required.
 
 # 2 
 
-```{r}
+```{r inv_cov}
 get_inv_cov <- function(lambda, data=df) {
-    p = ncol(data)
-    theta = Variable(rows = p, cols = p)
-    S <- cov(data)
-    objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta) + lambda * sum(abs(theta)))
-    problem = Problem(objective)
-    result = psolve(problem)
-    return(result$getValue(theta))
+  p = ncol(data)
+  theta = Variable(rows = p, cols = p)
+  S <- cov(data)
+  objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta) + lambda * sum(abs(theta)))
+  problem = Problem(objective)
+  result = psolve(problem)
+  return(result$getValue(theta))
 }
 
-round(get_inv_cov(1), 10)
+get_inv_cov(5)
 ```
-
 
 # 3
 
-```{r}
-lambda_search = 10^(seq(-2, 2, length.out = 20))
-inv_cov_matrices = plyr::aaply(lambda_search, 1, function(x) diag(get_inv_cov(x)))
+```{r make lambda search,eval=FALSE}
+lambda_search = c(0, 10^(seq(-2, 2, length.out = 19))) # TODO rerun this chunk
+inv_cov_matrices = aaply(lambda_search, 1, function(x) diag(get_inv_cov(x)))
 colnames(inv_cov_matrices) = colnames(df)
 inv_cov_matrices = cbind(lambda = lambda_search, inv_cov_matrices)
-head(round(inv_cov_matrices, digits = 2))
 
-inv_cov_melted = reshape2::melt(data.frame(inv_cov_matrices), id.vars = "lambda", value.name = "inverse_covariance")
-ggplot(inv_cov_melted) +
-    geom_line(aes(x = lambda, y = inverse_covariance, color = variable, lty = variable)) +
-    scale_x_log10()
+inv_cov_melted = reshape2::melt(data.frame(inv_cov_matrices), 
+                                id.vars = "lambda", 
+                                value.name = "inverse_covariance")
 
+write.csv(inv_cov_melted, "inv_cov_melted.csv", row.names = FALSE)
+``` 
+
+```{r plot, warning=FALSE, message=FALSE}
+inv_cov_melted <- read_csv("inv_cov_melted.csv")
+
+inv_cov_melted %>% 
+  ggplot(aes(x = lambda, y = inverse_covariance, 
+             color = variable, lty = variable)) +
+  geom_line()+
+  scale_x_log10()+
+  theme_minimal()
 ```
 
-
+Here we can see that as lambda is increased, the values for our inverse covariance approaches zero. 
 
 # 4
 
-```{r}
-index = matrix(sample(50, 50), ncol = 10)
-groups = plyr::alply(index, 2, function(x) df[x,])
-
-lambda_search_1 = 10^(seq(-2, 2, length.out = 4))
-
-bestlambda = function(lambda) {
-  theta_hats = plyr::llply(groups, function(x) get_inv_cov(lambda = lambda, data=x))
-  covs_s = plyr::llply(groups, cov)
-  neglik = NULL
-  for(i in 1:10) {
-    neglik[i] = -log(det(theta_hats[[i]])) + sum(diag(covs_s[[i]] %*% theta_hats[[i]]))
+```{r kfold_Cv}
+kfold_cv <- function(lambda, df, folds) {
+  n = nrow(df)
+  
+  # assign rows from df to different samples
+  samples = sample(n, n)
+  
+  # these labels will match up to i in the for loop
+  labels = rep(1:folds, each = n / folds)
+  fold_labels = cbind(samples, labels)
+  
+  # pre-allocate space
+  nll_vec = numeric(folds)
+  
+  for (i in 1:folds) {
+    
+    # find the rows that match i, these will be for our testing df 
+    hold_out <- which(fold_labels[, 2] == i)
+    test_rows = fold_labels[hold_out, 1]
+    
+    # training data
+    train = df[-test_rows, ]
+    
+    # testing (held out) data
+    test = df[test_rows, ]
+    
+    # fit the model excluding the indices I_i
+    theta_hat_i = get_inv_cov(lambda, train)
+    
+    # covariance computed just on the hold out
+    S = cov(test)
+    
+    # calculate the negative log likelihood
+    nll_vec[i] = -log(det(theta_hat_i)) + sum(diag(S %*% theta_hat_i))
   }
-  return(sum(neglik))
+  
+  # computing overall negative log likelihood
+  return(sum(nll_vec))
 }
+``` 
 
-neglik_vector = plyr::aaply(lambda_search, 1, bestlambda)
-colnames<- c(neglik_vector, "negative_log_lik")
-neglik_vector = cbind(lambda = lambda_search, neglik_vector)
-head(round(neglik_vector, digits = 2))
 
+```{r eval=FALSE}
+# This also takes forever and I just saved it as a CSV so I don't have to wait 
+# for RMD compilation
+neglik_vector = sapply(lambda_search, kfold_cv, df = df, folds = 10)
+neg_lik_df <- cbind(lambda_search, neglik_vector)
+write.csv(neg_lik_df, "neg_lik_df.csv", row.names = FALSE)
+``` 
+
+```{r, warning=FALSE, message=FALSE}
+read_csv("neg_lik_df.csv",) %>% as.matrix()
 ```
 
-
+Here we can see that the lower the value of lambda, the lower the negative log likelihood. Basically. choosing a lambda value that's 0 will result in the best results. The reason zero doesn't have the best negative log-likelihood is most likely due to random chance. 
 
 # 5
 
-```{r}
-get_inv_cov_update <- function(data=df) {
-    p = ncol(data)
-    theta = Variable(rows = p, cols = p)
-    S <- cov(data)
-    i = c(2:9)
-    j = c(2:9)
-    objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta))
-    constraints = list(theta[i,j] == 0)
-    problem = Problem(objective, constraints)
-    result = psolve(problem)
-    return(result$getValue(theta))
+```{r constraint}
+get_inv_cov_update <- function(data) {
+  
+  p = ncol(data)
+  theta = Variable(rows = p, cols = p)
+  S <- cov(data)
+  objective = Minimize(-log_det(theta) + matrix_trace(S %*% theta))
+  
+  # Creating constraints
+  i <- 2:9
+  j <- 2:9
+  
+  grid <- expand.grid(i = i, j = j) %>% 
+    filter(i < j)
+  
+  constraint_list <- alply(grid, 1, function(row){
+    # this sets everything in the upper triangule to 0
+    # besides the diagonal and the upper and rightmost border of the matrix
+    theta[row[, 1], row[, 2]] == 0
+  }
+  )
+  
+  problem = Problem(objective, constraint_list)
+  result = psolve(problem)
+  return(result$getValue(theta))
 }
 
-round(get_inv_cov_update(), 10)
-
+round(get_inv_cov_update(df), 3)
 ```
 
+Here is the rounded estimate from the data. 
 
 # 6
 
+```{r bootstrap, eval=FALSE}
+bootstrap <- function(data) {
+  sample = sample(1:50, 50, replace = TRUE)  
+  temp = data[sample, ]
+  theta_b <- get_inv_cov_update(temp)
+}
 
+# This takes forever to run, so I ran it once and saved the final result in a
+# csv down below
+B <- 100
+results <- replicate(B, bootstrap(df))
+```
 
+The bootstrap runs above. It really takes a long time to run so there won't be any output above. 
 
+```{r quantile,eval = FALSE}
+# Constructing a grid to use to get all of the quantiles
+grid <- expand.grid(x = 1:10, y = 1:10)
 
+# this creates a dataframe for each layer of the bootstrap results
+ci_df <- adply(grid, 1, function(r){
+  quantile(results[r[,1], r[,2],], c(0.025, 0.975))
+})  
 
+ci_df <- ci_df %>% 
+  # filter out the values that are 0
+  filter(`2.5%` != 0 & `97.5%` != 0 ) %>% 
+  arrange(x, y)
+
+# save the csv
+write.csv(ci_df, "ci_df.csv", row.names = FALSE)
+```
+
+```{r show quantiless,warning=FALSE, message=FALSE}
+read_csv("ci_df.csv") %>% as.matrix()
+```
+
+Here are all of the confidence intervals for the portion of the upper triangle that aren't zero. 
