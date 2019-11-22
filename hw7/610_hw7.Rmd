@@ -120,7 +120,7 @@ write.csv(neg_lik_df, "neg_lik_df.csv", row.names = FALSE)
 read_csv("neg_lik_df.csv",) %>% as.matrix()
 ```
 
-Here we can see that the lower the value of lambda, the lower the negative log likelihood. Basically. choosing a lambda value that's 0 will result in the best results. The reason zero doesn't have the best negative log-likelihood is most likely due to random chance. 
+Here we can see that the lower the value of lambda, the lower the negative log likelihood. Basically. choosing a lambda value that's 0 will result in the best results.
 
 # 5
 
