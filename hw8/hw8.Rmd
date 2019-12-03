@@ -1,0 +1,120 @@
+---
+title: "Hw8"
+author: "Joe Stoica, Corey Maxedon"
+date: "12/3/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plyr)
+``` 
+
+# Background 
+
+Contagion models describe the spread of an attribute in a network: diseases in contact networks, behaviors in friend networks, ideas in discussion networks, and so on. We will look at data froma study on how doctors adopted a new drug. Coleman, Katz, and Menzel [1] collected data on doctors in several cities in Illinois, including the first date on which they prescribed tetracycline (a new drug at the time) and which other doctors they went to for advice or discussion of treatment options. One of the theories investigated in the paper was that doctors who knew other doctors who had already prescribed the drug adopted it more quickly than those who didn’t.  This behavior can be described as a contagion model. In this assignment, we will simulate from a contagion model and use the simulations to obtain an approximate posterior distribution of the contagion parameter using approximate Bayesian computation.
+
+The contagion model we will consider is the susceptible-infected (SI) contagion model. In this model, each of the nodes in a network can be either susceptible to infection or already infected. At each time step, each infected node picks one of its neighbors uniformly at random. If the chosen neighbor is not infected, it becomes infected with probability p. For us, each of the nodes is a doctor, an “infected” node is a doctor who has prescribed tetracycline, and the links in the network are doctors who discuss cases with each other.
+
+# 1
+
+```{r, message=FALSE, warning=FALSE}
+attributes <- read_csv("attributes.csv")
+attributes$ID <- 1:117
+
+network <- read_csv("network.csv")
+
+which(apply(network, 1, function(x){any(x) == 1}))
+```
+
+# 2
+
+```{r}
+#' Simulating from the contagion model
+#'
+#' @param p Infection probability p
+#' @param nodes A set of initially infected nodes
+#' @param network The network given by the data
+#' @param steps The number of steps to simulate
+#'
+#' @return A vector giving the time point at which each node was infected
+contagion_sim <- function(p, network, nodes, steps) {
+  n = network
+  # this will be the vector that contains the time of infection for each doctor
+  ans = rep(NA, 117)
+  # add the initial infected
+  ans[nodes] = 1
+  
+  # keep track of the nodes that are infected 
+  infected_nodes = nodes
+  
+  # This is a helper function to check to see if the doctor is infected or not
+  prob_helper = function(x){
+    ifelse(runif(1) <= p, TRUE, FALSE)
+  }
+  
+  # This is a function to fix when the length of x = 1, which can happen if a 
+  # doctor has spoken to only one other doctor
+  sample_fix <- function(x) {
+    ifelse(length(x) <= 1, x, sample(x, 1))
+  }
+  
+  step = 3
+  for (step in 2:steps) {
+    # Start with the vector of infected nodes
+    initial_infected = as.tibble(n[infected_nodes, ])
+    
+    # Find all of the doctors that the infected have talked to
+    conversation_list = alply(initial_infected, 1, function(x){which(x == 1,
+                                                                     arr.ind = FALSE)})
+    
+    # Select a doctor from conversation list randomly
+    random_doctor = sapply(conversation_list, function(x){sample_fix(x)})
+    
+    # Use p to see if they're infected
+    infected_result = sapply(random_doctor, prob_helper)
+    
+    # This is super messy, but basically it finds the doctors who got infected,
+    # adds the time the doctor was infected, and updates the infected list
+    infected_df = data.frame(random_doctor, infected_result) %>% 
+      filter(infected_result == TRUE)
+    
+    for(i in 1:nrow(infected_df)){
+      # TODO add if a doctor is already infected, don't overwrite previous step
+      ans[infected_df[i, 1]] = step
+    }
+    
+    # update infected
+    infected_nodes = c(infected_nodes, infected_df$random_doctor)
+    
+  }
+  
+  return(ans)
+}
+```
+
+# 3 
+
+Simulate from the model given the real data parameters for the network (the doctor discussion network), the initially infected nodes (the doctors who prescribed tetracycline in month1), and the number of time steps (18months). Do one simulation each forp=.1, .5, .9, andshow what one realization of the simulation looks like.
+
+```{r}
+probs <- c(0.1, 0.5, 0.9)
+initially_infected_nodes <- attributes[attributes$adoption_date == 1,]$ID
+steps = 18
+``` 
+
+```{r}
+contagion_sim(p = 0.9, 
+              network = network,
+              nodes = initially_infected_nodes,
+              steps = steps)
+``` 
+
+```{r}
+results <- lapply(probs, contagion_sim, 
+                  network = network,
+                  nodes = initially_infected_nodes, 
+                  steps = steps)
+```
+
