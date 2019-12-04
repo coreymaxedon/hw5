@@ -21,11 +21,11 @@ The contagion model we will consider is the susceptible-infected (SI) contagion 
 
 ```{r, message=FALSE, warning=FALSE}
 attributes <- read_csv("attributes.csv")
-attributes$ID <- 1:117
+attributes$ID <- 1:dim(attributes)[1]
 
 network <- read_csv("network.csv")
 
-which(apply(network, 1, function(x){any(x) == 1}))
+# which(apply(network, 1, function(x){any(x) == 1}))
 ```
 
 # 2
@@ -42,7 +42,7 @@ which(apply(network, 1, function(x){any(x) == 1}))
 contagion_sim <- function(p, network, nodes, steps) {
   n = network
   # this will be the vector that contains the time of infection for each doctor
-  ans = rep(NA, 117)
+  ans = rep(NA, dim(n)[1])
   # add the initial infected
   ans[nodes] = 1
   
@@ -121,3 +121,8 @@ One realization of the simulation, for p = 0.50, looks like this:
 ```{r, echo = FALSE}
 results[2]
 ```
+
+
+
+
+
