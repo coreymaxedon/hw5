@@ -1,5 +1,5 @@
 ---
-title: "Hw8"
+title: "Homework 8"
 author: "Joe Stoica, Corey Maxedon, Austin Lesh"
 date: "12/3/2019"
 output: pdf_document
