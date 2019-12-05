@@ -24,8 +24,6 @@ attributes <- read_csv("attributes.csv")
 attributes$ID <- 1:117
 
 network <- read_csv("network.csv")
-
-which(apply(network, 1, function(x){any(x) == 1}))
 ```
 
 # 2
@@ -40,6 +38,7 @@ which(apply(network, 1, function(x){any(x) == 1}))
 #'
 #' @return A vector giving the time point at which each node was infected
 contagion_sim <- function(p, network, nodes, steps) {
+  
   n = network
   # this will be the vector that contains the time of infection for each doctor
   ans = rep(NA, 117)
@@ -60,13 +59,16 @@ contagion_sim <- function(p, network, nodes, steps) {
     ifelse(length(x) <= 1, x, sample(x, 1))
   }
   
+  # subset the phone book for the infected
+  master = alply(network, 1, function(x){which(x == 1, arr.ind = FALSE)})
+  
   for (step in 2:steps) {
-    # Start with the vector of infected nodes
-    initial_infected = as.tibble(n[infected_nodes, ])
     
-    # Find all of the doctors that the infected have talked to
-    conversation_list = alply(initial_infected, 1, function(x){which(x == 1,
-                                                                     arr.ind = FALSE)})
+    # Get the infected doctors and who they talked to 
+    # Note: Doctor i can list doctor j if they have talked to them, but doctor j 
+    # might not have included i. Therefore, we have to remove the j doctors
+    # (the j doctors all have integer(0) as their entry in the list)
+    conversation_list <- Filter(length, na.omit(master[infected_nodes]))
     
     # Select a doctor from conversation list randomly
     random_doctor = sapply(conversation_list, function(x){sample_fix(x)})
@@ -76,15 +78,22 @@ contagion_sim <- function(p, network, nodes, steps) {
     
     # This is super messy, but basically it finds the doctors who got infected,
     # adds the time the doctor was infected, and updates the infected list
-    infected_df = distinct(data.frame(random_doctor, infected_result) %>% 
-      filter(infected_result == TRUE))
+    infected_df = data.frame(random_doctor, infected_result) %>% 
+      filter(infected_result == TRUE) %>% 
+      distinct()
     
     # Enter this loop if infected_df has 1+ rows, which is the only time
     # it's interesting. 
-    if(dim(infected_df)[1] != 0) {
+    if(dim(infected_df)[1] > 0) {
+      
+      # for every row in the infected data frame
       for(i in 1:nrow(infected_df)){
-        # If doctor wasn't previously infected, set time = step
+        
+        # If the ith doctor wasn't previously infected (which happens when the 
+        # value isn't equal to NA), 
         if (is.na(ans[infected_df[i, 1]])){
+          
+          # set time = step
           ans[infected_df[i, 1]] = step
         }
       }
@@ -109,8 +118,11 @@ initially_infected_nodes <- attributes[attributes$adoption_date == 1,]$ID
 steps = 18
 ``` 
 
+
+
 ```{r}
-results <- lapply(probs, contagion_sim, 
+results <- lapply(probs, 
+                  contagion_sim, 
                   network = network,
                   nodes = initially_infected_nodes, 
                   steps = steps)
@@ -121,3 +133,5 @@ One realization of the simulation, for p = 0.50, looks like this:
 ```{r, echo = FALSE}
 results[2]
 ```
+
+It is important to note that it is possible that not every time point will be present in the output, and this case occurs when no doctors are infected at that time. 
