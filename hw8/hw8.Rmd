@@ -66,7 +66,7 @@ contagion_sim <- function(p, network, nodes, steps) {
     
     # Get the infected doctors and who they talked to 
     # Note: Doctor i can list doctor j if they have talked to them, but doctor j 
-    # might not have included i. Therefore, we have to remove the j doctors
+    # might not have included i. Therefore, we can remove the j doctors
     # (the j doctors all have integer(0) as their entry in the list)
     conversation_list <- Filter(length, na.omit(master[infected_nodes]))
     
@@ -144,18 +144,11 @@ generate_abc_sample = function(observed_data,
                                prior_distribution,
                                data_generating_function,
                                epsilon) {
-    # while(TRUE) {
-    #     theta = prior_distribution()
-    #     y = data_generating_function(theta)
-    #     if(sum(abs(summary_statistic(y) -  summary_statistic(observed_data))) < epsilon) {
-    #         return(theta)
-    #     }
     theta = prior_distribution()
     y = data_generating_function(theta)
     y[is.na(y)] = 99
-    # resid = sum(abs(summary_statistic(y) -  summary_statistic(observed_data)))
-    resid = sum(abs(y - observed_data))
-    return(data.frame(theta, resid))
+    resid = summary_statistic(y, observed_data)
+    return(c(theta, resid))
 }
 ```
 
@@ -165,29 +158,34 @@ n_samples = dim(network)[1]
 prior_distribution = function() runif(1)
 data_generating_function = function(x) {contagion_sim(p = x, network = network,
                                                       nodes = initially_infected_nodes, 
-                                                      steps = 18)                               #max(attributes$adoption_date)
+                                                      steps = 18)
   }
 observed_data = attributes$adoption_date
-summary_statistic = function()
+summary_statistic = function(x, y) sum(abs(x - y))
+
+N = 1000
 epsilon = .05
 
-posterior_samples = replicate(n = 10,
+posterior_samples = replicate(n = N,
     generate_abc_sample(observed_data,
                           summary_statistic,
                           prior_distribution,
                           data_generating_function,
                           epsilon))
+posterior_samples = t(posterior_samples)
+posterior_samples = posterior_samples[order(posterior_samples[,2]),]
+best_posterior_samples = posterior_samples[1:(N*epsilon),]
 ```
 
 
 ```{r}
-(true_posterior_mean = (1 + sum(observed_data)) / (n_samples + 1))
-mean(posterior_samples)
-(true_posterior_variance = (1 + sum(observed_data)) / (n_samples + 1)^2)
-var(posterior_samples)
+qplot(best_posterior_samples[,1]) # + xlim(c(0, max(theta_vec)))
 ```
 
 ```{r}
-qplot(posterior_samples) + xlim(c(0, max(theta_vec)))
-plot(dgamma(theta_vec, shape = 1 + sum(observed_data), rate = n_samples + 1) ~ x_vec, type = 'l', ylab = "True posterior density", xlab = "theta")
+mean_post = mean(best_posterior_samples)
+low_quant = quantile(best_posterior_samples, probs = c(0.025, 0.975))
 ```
+
+The mean of the posterior samples is `r mean_post`
+
