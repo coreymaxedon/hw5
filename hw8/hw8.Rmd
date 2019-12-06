@@ -184,8 +184,8 @@ qplot(best_posterior_samples[,1]) # + xlim(c(0, max(theta_vec)))
 
 ```{r}
 mean_post = mean(best_posterior_samples)
-low_quant = quantile(best_posterior_samples, probs = c(0.025, 0.975))
+quant = quantile(best_posterior_samples, probs = c(0.025, 0.975))
 ```
 
-The mean of the posterior samples is `r mean_post`
+The mean of the posterior samples is `r mean_post`. The 0.025 quantile of the posterior samples is `r quant[1]`. The 0.975 quantile of the posterior samples is `r quant[2]`.
 
