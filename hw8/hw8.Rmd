@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 library(tidyverse)
 library(plyr)
 ``` 
@@ -144,11 +144,11 @@ generate_abc_sample = function(observed_data,
                                prior_distribution,
                                data_generating_function,
                                epsilon) {
-    theta = prior_distribution()
-    y = data_generating_function(theta)
-    y[is.na(y)] = 99
-    resid = summary_statistic(y, observed_data)
-    return(c(theta, resid))
+  theta = prior_distribution()
+  y = data_generating_function(theta)
+  y[is.na(y)] = 99
+  resid = summary_statistic(y, observed_data)
+  return(c(theta, resid))
 }
 ```
 
@@ -156,10 +156,11 @@ generate_abc_sample = function(observed_data,
 ```{r}
 n_samples = dim(network)[1]
 prior_distribution = function() runif(1)
-data_generating_function = function(x) {contagion_sim(p = x, network = network,
-                                                      nodes = initially_infected_nodes, 
-                                                      steps = 18)
-  }
+data_generating_function = function(x) {
+  contagion_sim(p = x, network = network,
+                nodes = initially_infected_nodes, 
+                steps = 18)
+}
 observed_data = attributes$adoption_date
 summary_statistic = function(x, y) sum(abs(x - y))
 
@@ -167,20 +168,31 @@ N = 1000
 epsilon = .05
 
 posterior_samples = replicate(n = N,
-    generate_abc_sample(observed_data,
-                          summary_statistic,
-                          prior_distribution,
-                          data_generating_function,
-                          epsilon))
+                              generate_abc_sample(observed_data,
+                                                  summary_statistic,
+                                                  prior_distribution,
+                                                  data_generating_function,
+                                                  epsilon))
 posterior_samples = t(posterior_samples)
 posterior_samples = posterior_samples[order(posterior_samples[,2]),]
 best_posterior_samples = posterior_samples[1:(N*epsilon),]
 ```
 
 
-```{r}
-qplot(best_posterior_samples[,1]) # + xlim(c(0, max(theta_vec)))
+```{r message=FALSE}
+data.frame(b1 = best_posterior_samples[, 1],
+           b2 = best_posterior_samples[, 2]) %>% 
+  ggplot(aes(b1))+
+  geom_histogram(color ="black",
+                 fill = "grey",
+                 bins = 15)+
+  theme_minimal()+
+  labs(x = "Posterior of p",
+       y = "Count", 
+       title = "Posterior samples of infection probabilities")
 ```
+
+Here is the histogram for the posterior samples generated from our abc algorithm. 
 
 ```{r}
 mean_post = mean(best_posterior_samples[,1])
